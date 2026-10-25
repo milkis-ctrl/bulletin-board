@@ -18,15 +18,17 @@ export const App: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res: any = await fetchAnnouncements();
-      
-      // Защита от разных форматов ответа бэкенда
-      if (Array.isArray(res)) {
-        setAnnouncements(res);
-      } else if (res && Array.isArray(res.data)) {
-        setAnnouncements(res.data);
-      } else if (res && Array.isArray(res.items)) {
-        setAnnouncements(res.items);
+      const response = await fetchAnnouncements();
+
+      if (Array.isArray(response)) {
+        setAnnouncements(response);
+      } else if (response && typeof response === 'object') {
+        const potentialData = Object.values(response).find((val) => Array.isArray(val));
+        if (Array.isArray(potentialData)) {
+          setAnnouncements(potentialData as Announcement[]);
+        } else {
+          setAnnouncements([]);
+        }
       } else {
         setAnnouncements([]);
       }
@@ -43,7 +45,7 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,3 +92,81 @@ export const App: React.FC = () => {
             <label htmlFor="title">Заголовок *</label>
             <input
               id="title"
+              type="text"
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Например, Продам ноутбук"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="description">Описание *</label>
+            <textarea
+              id="description"
+              required
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Подробности, характеристики..."
+            />
+          </div>
+
+          <div className="row">
+            <div className="form-group">
+              <label htmlFor="author">Контакт / Имя</label>
+              <input
+                id="author"
+                type="text"
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                placeholder="Имя или Telegram"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="price">Цена</label>
+              <input
+                id="price"
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value ? Number(e.target.value) : '')}
+                placeholder="0"
+              />
+            </div>
+          </div>
+
+          <button type="submit" disabled={submitting}>
+            {submitting ? 'Отправка...' : 'Опубликовать'}
+          </button>
+        </form>
+      </section>
+
+      {error && <div className="alert-error">{error}</div>}
+
+      <section className="list-section">
+        <h2>Объявления</h2>
+        {loading && <p>Загрузка данных...</p>}
+        {!loading && announcements.length === 0 && (
+          <p className="empty-state">Объявлений пока нет.</p>
+        )}
+        <div className="grid">
+          {announcements.map((item, index) => (
+            <div key={item.id ?? index} className="card">
+              <h3>{item.title}</h3>
+              <p className="card-desc">{item.description}</p>
+              <div className="card-footer">
+                {item.price !== undefined && (
+                  <span className="card-price">{item.price} сом</span>
+                )}
+                {item.author && <span className="card-author">👤 {item.author}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default App;
